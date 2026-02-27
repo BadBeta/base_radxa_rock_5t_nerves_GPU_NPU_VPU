@@ -1,0 +1,135 @@
+--- a/drivers/rknpu/rknpu_debugger.c	2026-02-24 05:08:30.539473634 +0100
++++ b/drivers/rknpu/rknpu_debugger.c	2026-02-24 05:27:32.183511752 +0100
+@@ -6,6 +6,7 @@
+ 
+ #include <linux/slab.h>
+ #include <linux/delay.h>
++#include <linux/io.h>
+ #include <linux/syscalls.h>
+ #include <linux/debugfs.h>
+ #include <linux/proc_fs.h>
+@@ -26,6 +27,115 @@
+ 
+ #define RKNPU_DEBUGGER_ROOT_NAME "rknpu"
+ 
++/* --- Register dump support --- */
++
++struct rknpu_reg_range {
++	const char *name;
++	u32 start;
++	u32 end;
++};
++
++static const struct rknpu_reg_range npu_reg_ranges[] = {
++	{ "PC",       0x0000, 0x003C },
++	{ "CNA",      0x1000, 0x1190 },
++	{ "CORE",     0x3000, 0x3020 },
++	{ "DPU",      0x4000, 0x40F0 },
++	{ "DPU_LUT",  0x4100, 0x412C },
++	{ "RDMA",     0x5000, 0x5050 },
++	{ "PPU",      0x6000, 0x6020 },
++	{ "PPU_RDMA", 0x7000, 0x7020 },
++	{ "GLOBAL",   0xF000, 0xF008 },
++};
++
++#define NUM_REG_RANGES ARRAY_SIZE(npu_reg_ranges)
++
++static int rknpu_regs_show(struct seq_file *m, void *data)
++{
++	struct rknpu_debugger_node *node = m->private;
++	struct rknpu_debugger *debugger = node->debugger;
++	struct rknpu_device *rknpu_dev =
++		container_of(debugger, struct rknpu_device, debugger);
++	int core, r;
++	u32 offset, val;
++
++	if (atomic_read(&rknpu_dev->power_refcount) <= 0) {
++		seq_printf(m, "NPU is powered off. Use 'echo on > power' first or run inference.\n");
++		return 0;
++	}
++
++	seq_printf(m, "# RKNPU Register Dump (non-zero only)\n");
++	seq_printf(m, "# cores=%d, power_refcount=%d\n\n",
++		   rknpu_dev->config->num_irqs,
++		   atomic_read(&rknpu_dev->power_refcount));
++
++	for (core = 0; core < rknpu_dev->config->num_irqs; core++) {
++		if (!rknpu_dev->base[core])
++			continue;
++		seq_printf(m, "=== Core %d ===\n", core);
++		for (r = 0; r < NUM_REG_RANGES; r++) {
++			int printed_header = 0;
++			for (offset = npu_reg_ranges[r].start;
++			     offset <= npu_reg_ranges[r].end;
++			     offset += 4) {
++				val = readl(rknpu_dev->base[core] + offset);
++				if (val != 0) {
++					if (!printed_header) {
++						seq_printf(m, "  [%s]\n",
++							   npu_reg_ranges[r].name);
++						printed_header = 1;
++					}
++					seq_printf(m, "    0x%04X = 0x%08X\n",
++						   offset, val);
++				}
++			}
++		}
++		seq_putc(m, '\n');
++	}
++
++	return 0;
++}
++
++static int rknpu_regs_full_show(struct seq_file *m, void *data)
++{
++	struct rknpu_debugger_node *node = m->private;
++	struct rknpu_debugger *debugger = node->debugger;
++	struct rknpu_device *rknpu_dev =
++		container_of(debugger, struct rknpu_device, debugger);
++	int core, r;
++	u32 offset, val;
++
++	if (atomic_read(&rknpu_dev->power_refcount) <= 0) {
++		seq_printf(m, "NPU is powered off. Use 'echo on > power' first or run inference.\n");
++		return 0;
++	}
++
++	seq_printf(m, "# RKNPU Full Register Dump\n");
++	seq_printf(m, "# cores=%d, power_refcount=%d\n\n",
++		   rknpu_dev->config->num_irqs,
++		   atomic_read(&rknpu_dev->power_refcount));
++
++	for (core = 0; core < rknpu_dev->config->num_irqs; core++) {
++		if (!rknpu_dev->base[core])
++			continue;
++		seq_printf(m, "=== Core %d ===\n", core);
++		for (r = 0; r < NUM_REG_RANGES; r++) {
++			seq_printf(m, "  [%s]\n", npu_reg_ranges[r].name);
++			for (offset = npu_reg_ranges[r].start;
++			     offset <= npu_reg_ranges[r].end;
++			     offset += 4) {
++				val = readl(rknpu_dev->base[core] + offset);
++				seq_printf(m, "    0x%04X = 0x%08X\n",
++					   offset, val);
++			}
++		}
++		seq_putc(m, '\n');
++	}
++
++	return 0;
++}
++
++/* --- End register dump support --- */
++
+ #if defined(CONFIG_ROCKCHIP_RKNPU_DEBUG_FS) ||                                 \
+ 	defined(CONFIG_ROCKCHIP_RKNPU_PROC_FS)
+ static int rknpu_version_show(struct seq_file *m, void *data)
+@@ -313,6 +423,8 @@
+ #ifdef CONFIG_ROCKCHIP_RKNPU_SRAM
+ 	{ "mm", rknpu_mm_dump, NULL, NULL },
+ #endif
++	{ "regs", rknpu_regs_show, NULL, NULL },
++	{ "regs_full", rknpu_regs_full_show, NULL, NULL },
+ };
+ 
+ static ssize_t rknpu_debugger_write(struct file *file, const char __user *ubuf,

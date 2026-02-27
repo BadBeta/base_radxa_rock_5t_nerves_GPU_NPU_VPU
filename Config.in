@@ -1,0 +1,22 @@
+# Add project-specific packages for Buildroot here
+#
+# If these are non-proprietary, please consider contributing them back to
+# Nerves or Buildroot.
+
+menu "Rock 5T Hardware Acceleration"
+
+source "$NERVES_DEFCONFIG_DIR/package/rockchip-libmali-g610/Config.in"
+source "$NERVES_DEFCONFIG_DIR/package/rockchip-mpp/Config.in"
+source "$NERVES_DEFCONFIG_DIR/package/rockchip-rknpu2/Config.in"
+source "$NERVES_DEFCONFIG_DIR/package/rknpu/Config.in"
+source "$NERVES_DEFCONFIG_DIR/package/rtw89-oot/Config.in"
+
+endmenu
+
+menu "Rock 5T Application Packages"
+
+source "$NERVES_DEFCONFIG_DIR/package/cog-ai-extension/Config.in"
+source "$NERVES_DEFCONFIG_DIR/package/gstreamer-rockchip/Config.in"
+source "$NERVES_DEFCONFIG_DIR/package/rknn-infer/Config.in"
+
+endmenu

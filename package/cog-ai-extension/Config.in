@@ -1,0 +1,8 @@
+config BR2_PACKAGE_COG_AI_EXTENSION
+	bool "cog-ai-extension"
+	depends on BR2_PACKAGE_COG
+	help
+	  WebKit web extension for Cog/WPE that injects an AI overlay
+	  into web pages. Provides YOLO object detection and Whisper
+	  speech transcription buttons that communicate with the Phoenix
+	  backend via WebSocket.
