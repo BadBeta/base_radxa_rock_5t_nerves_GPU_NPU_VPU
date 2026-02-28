@@ -1,8 +1,0 @@
-config BR2_PACKAGE_RKNN_INFER
-	bool "rknn-infer"
-	depends on BR2_aarch64
-	depends on BR2_PACKAGE_ROCKCHIP_RKNPU2
-	help
-	  RKNN inference helper for Whisper and YOLO models.
-	  Uses librknnrt.so for model loading and NPU inference.
-	  Communicates with Elixir via stdin/stdout binary protocol.

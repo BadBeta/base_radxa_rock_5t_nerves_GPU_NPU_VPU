@@ -40,7 +40,6 @@ belong in the application layer.
 | `rockchip-mpp` | Rockchip Media Process Platform (VPU) |
 | `rockchip-rknpu2` | RKNN runtime library (librknnrt.so) |
 | `rknpu` | Out-of-tree RKNPU kernel module (for non-BSP kernels) |
-| `rknn-infer` | C binary for RKNN model inference (Port-based protocol) |
 | `gstreamer-rockchip` | GStreamer plugins for MPP hardware codecs |
 | `cog-ai-extension` | WebKit extension for AI overlay in Cog browser |
 | `rtw89-oot` | Out-of-tree RTL8852BE WiFi driver |
