@@ -76,15 +76,6 @@ With the device in maskrom mode (hold maskrom button, power on):
 
 This uses `rkdeveloptool` to write the firmware image to eMMC.
 
-### OTA Update via SSH
-
-Once the device is running and on the network:
-
-```bash
-cd test_app
-mix upload 192.168.200.143
-```
-
 ## Partition Layout (GPT)
 
 | Region | Offset | Size | Description |
