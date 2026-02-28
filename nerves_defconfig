@@ -36,7 +36,7 @@ BR2_BACKUP_SITE="http://dl.nerves-project.org"
 # BSP 6.1: No kernel patches needed (RKNPU in-tree, no Rocket nodes, no mmu600 issues)
 BR2_GLOBAL_PATCH_DIR="${BR2_EXTERNAL_NERVES_PATH}/patches ${NERVES_DEFCONFIG_DIR}/patches ${NERVES_DEFCONFIG_DIR}/patches-bsp61"
 BR2_REPRODUCIBLE=y
-BR2_JLEVEL=2
+BR2_JLEVEL=4
 
 # System configuration
 BR2_SYSTEM_DHCP="eth0"
@@ -53,9 +53,8 @@ BR2_GENERATE_LOCALE="en_US.UTF-8"
 
 # Kernel - Rockchip BSP 6.1 (linux-rk2410) with in-tree RKNPU
 BR2_LINUX_KERNEL=y
-BR2_LINUX_KERNEL_CUSTOM_GIT=y
-BR2_LINUX_KERNEL_CUSTOM_REPO_URL="https://github.com/radxa/kernel.git"
-BR2_LINUX_KERNEL_CUSTOM_REPO_VERSION="6c190446bb2789f89e7fdc2f00ad83a5052c4852"
+BR2_LINUX_KERNEL_CUSTOM_TARBALL=y
+BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION="https://github.com/radxa/kernel/archive/refs/heads/linux-6.1-stan-rkr4.1.tar.gz"
 BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
 BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${NERVES_DEFCONFIG_DIR}/linux-6.1-bsp.defconfig"
 # LZ4 decompresses ~5x faster than XZ (slight size increase)
@@ -68,23 +67,23 @@ BR2_LINUX_KERNEL_NEEDS_HOST_LIBELF=y
 # U-Boot - Radxa BSP fork (builds idbloader.img + u-boot.itb)
 BR2_TARGET_UBOOT=y
 BR2_TARGET_UBOOT_BUILD_SYSTEM_KCONFIG=y
-BR2_TARGET_UBOOT_CUSTOM_GIT=y
-BR2_TARGET_UBOOT_CUSTOM_REPO_URL="https://github.com/radxa/u-boot.git"
-BR2_TARGET_UBOOT_CUSTOM_REPO_VERSION="3855a57c3f8a1fcec5f5b37d96c206c56030d201"
+BR2_TARGET_UBOOT_CUSTOM_TARBALL=y
+BR2_TARGET_UBOOT_CUSTOM_TARBALL_LOCATION="https://github.com/radxa/u-boot/archive/refs/heads/next-dev-v2024.10.tar.gz"
 BR2_TARGET_UBOOT_BOARD_DEFCONFIG="rock-5t-rk3588"
 BR2_TARGET_UBOOT_FORMAT_ITB=y
-BR2_TARGET_UBOOT_SPL=y
-BR2_TARGET_UBOOT_SPL_NAME="idbloader.img"
+# SPL disabled — idbloader.img is created in post-createfs.sh
+# (Radxa U-Boot fork doesn't generate it as a build target)
 BR2_TARGET_UBOOT_NEEDS_ATF_BL31=y
 BR2_TARGET_UBOOT_NEEDS_ATF_BL31_ELF=y
-BR2_TARGET_UBOOT_NEEDS_ROCKCHIP_RKBIN=y
+# ROCKCHIP_RKBIN dependency removed — rkbin DDR blob is installed separately
+# and idbloader.img is assembled in post-createfs.sh
 BR2_TARGET_UBOOT_NEEDS_PYLIBFDT=y
 BR2_TARGET_UBOOT_NEEDS_PYELFTOOLS=y
 BR2_TARGET_UBOOT_NEEDS_OPENSSL=y
 
 # Rockchip rkbin blobs (DDR init for U-Boot TPL)
 BR2_PACKAGE_ROCKCHIP_RKBIN=y
-BR2_PACKAGE_ROCKCHIP_RKBIN_TPL_FILENAME="bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v1.19.bin"
+BR2_PACKAGE_ROCKCHIP_RKBIN_TPL_FILENAME="bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v1.18.bin"
 
 # ARM Trusted Firmware (BL31 for U-Boot)
 BR2_TARGET_ARM_TRUSTED_FIRMWARE=y

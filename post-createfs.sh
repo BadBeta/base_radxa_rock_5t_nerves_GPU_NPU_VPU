@@ -53,30 +53,50 @@ echo ""
 echo "Creating Rockchip boot images..."
 
 # ============================================
-# Verify U-Boot images from Buildroot build
+# Create idbloader.img (DDR blob + SPL)
 # ============================================
-# Buildroot builds idbloader.img and u-boot.itb from source
-# (Radxa U-Boot fork + ATF + rkbin DDR blob)
+# Radxa U-Boot fork doesn't generate idbloader.img automatically.
+# We create it by combining the rkbin DDR blob with U-Boot SPL.
 
-if [ ! -f "${BINARIES_DIR}/idbloader.img" ]; then
-    echo "ERROR: idbloader.img not found — U-Boot build may have failed"
+UBOOT_DIR=$(find "${BUILD_DIR}" -maxdepth 1 -type d -name "uboot-*" 2>/dev/null | head -1)
+if [ -z "${UBOOT_DIR}" ]; then
+    echo "ERROR: U-Boot build directory not found"
     exit 1
 fi
 
+MKIMAGE="${UBOOT_DIR}/tools/mkimage"
+if [ ! -x "${MKIMAGE}" ]; then
+    echo "ERROR: mkimage not found in U-Boot build"
+    exit 1
+fi
+
+SPL_BIN="${UBOOT_DIR}/spl/u-boot-spl.bin"
+DDR_BLOB=$(find "${BINARIES_DIR}" -name "rk3588_ddr_*.bin" 2>/dev/null | head -1)
+
+if [ ! -f "${SPL_BIN}" ]; then
+    echo "ERROR: u-boot-spl.bin not found"
+    exit 1
+fi
+
+if [ -z "${DDR_BLOB}" ]; then
+    echo "ERROR: DDR blob not found in ${BINARIES_DIR}"
+    exit 1
+fi
+
+echo "Creating idbloader.img from:"
+echo "  DDR blob: ${DDR_BLOB}"
+echo "  SPL:      ${SPL_BIN}"
+
+"${MKIMAGE}" -n rk3588 -T rksd -d "${DDR_BLOB}":"${SPL_BIN}" "${BINARIES_DIR}/idbloader.img"
+echo "Created idbloader.img"
+
+# Verify u-boot.itb
 if [ ! -f "${BINARIES_DIR}/u-boot.itb" ]; then
     echo "ERROR: u-boot.itb not found — U-Boot build may have failed"
     exit 1
 fi
 
-echo "U-Boot images present (built from source)"
-
-# Find mkimage for boot script creation
-UBOOT_DIR=$(find "${BUILD_DIR}" -maxdepth 1 -type d -name "uboot-*" 2>/dev/null | head -1)
-if [ -n "${UBOOT_DIR}" ] && [ -x "${UBOOT_DIR}/tools/mkimage" ]; then
-    MKIMAGE="${UBOOT_DIR}/tools/mkimage"
-else
-    MKIMAGE=""
-fi
+echo "U-Boot images ready"
 
 # ============================================
 # Generate boot.scr (U-Boot boot script)

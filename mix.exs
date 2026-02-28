@@ -65,7 +65,7 @@ defmodule NervesSystemRock5t.MixProject do
   defp build_runner_opts do
     # CRITICAL: Limit to 4 parallel jobs to avoid running out of memory
     # during memory-intensive builds (WebKit, Chromium deps, etc.)
-    [make_args: ["-j2"]]
+    [make_args: ["-j4"]]
   end
 
   defp package_files do
