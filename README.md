@@ -88,14 +88,6 @@ This uses `rkdeveloptool` to write the firmware image to eMMC.
 picocom -b 1500000 /dev/ttyUSB0
 ```
 
-## Known Issues
-
-**Radxa BSP U-Boot mkimage bug**: The U-Boot fork's `tools/mkimage`
-writes `0xFFFFFFFF` as the multi-image terminator in boot.scr instead
-of the correct `0x00000000`. This causes U-Boot to misparse the script
-payload. The build system works around this by preferring the Buildroot
-host mkimage or system mkimage.
-
 ## License
 
 This system configuration is provided as-is. Individual components have
