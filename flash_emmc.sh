@@ -6,7 +6,9 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ARTIFACT_DIR="$SCRIPT_DIR/.nerves/artifacts/nerves_system_rock5t-portable-0.1.0"
-LOADER=$(find "$ARTIFACT_DIR/build" -name "rk3588_spl_loader*.bin" 2>/dev/null | head -1)
+# Prefer loader from dl/ (manually placed), fall back to build artifacts
+LOADER=$(find "$SCRIPT_DIR/dl" -name "rk3588_spl_loader*.bin" 2>/dev/null | sort -V | tail -1)
+[ -z "$LOADER" ] && LOADER=$(find "$ARTIFACT_DIR/build" -name "rk3588_spl_loader*.bin" 2>/dev/null | head -1)
 FW_FILE="$SCRIPT_DIR/test_app/_build/rock5t_dev/nerves/images/test_app.fw"
 IMAGE="/tmp/rock5t_test.img"
 
@@ -26,10 +28,20 @@ echo "Step 1: Creating disk image from firmware..."
 rm -f "$IMAGE"
 fwup -a -d "$IMAGE" -i "$FW_FILE" -t complete --unsafe
 
-# Step 2: Truncate image to only include boot + rootfs-a data
-echo "Step 2: Truncating image to essential data..."
-TRUNCATE_SIZE=$((1200 * 1024 * 1024))
-truncate -s $TRUNCATE_SIZE "$IMAGE"
+# Step 2: Truncate to essential data, then de-sparse
+# Layout: rootfs-a ends at sector (327680 + 2097152) = 2424832
+# Add 1MB padding = 2426880 sectors = 1184+1 MB
+# fwup creates a sparse file; rkdeveloptool skips sparse holes,
+# leaving old eMMC data intact. De-sparse so zeros are written.
+echo "Step 2: Preparing image for flash..."
+TRUNCATE_SECTORS=2426880
+TRUNCATE_BYTES=$((TRUNCATE_SECTORS * 512))
+truncate -s $TRUNCATE_BYTES "$IMAGE"
+DENSE_IMAGE="/tmp/rock5t_test_dense.img"
+rm -f "$DENSE_IMAGE"
+dd if="$IMAGE" of="$DENSE_IMAGE" bs=4M status=progress
+rm -f "$IMAGE"
+IMAGE="$DENSE_IMAGE"
 echo "Created: $IMAGE ($(du -h "$IMAGE" | cut -f1))"
 echo ""
 

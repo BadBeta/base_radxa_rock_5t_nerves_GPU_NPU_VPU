@@ -169,7 +169,7 @@ setenv nerves_fw_active
 # Try reading env from eMMC and importing it
 if mmc dev \${devnum}; then
     if mmc read 0x02000000 ${UBOOT_ENV_SECTOR} ${UBOOT_ENV_SECTORS}; then
-        env import -b 0x02000000 ${UBOOT_ENV_SIZE} nerves_fw_active 2>/dev/null
+        env import -b 0x02000000 ${UBOOT_ENV_SIZE} nerves_fw_active
     fi
 fi
 
@@ -197,15 +197,23 @@ echo "ERROR: booti failed!"
 EOF
 
 # Create boot.scr using mkimage
-if [ -x "${MKIMAGE}" ]; then
-    "${MKIMAGE}" -A arm64 -O linux -T script -C none -d "${BOOT_CMD}" "${BOOT_SCR}"
-    echo "Created boot.scr"
+# Prefer Buildroot host mkimage over U-Boot's tools/mkimage.
+# The Radxa BSP U-Boot mkimage has a bug: it writes 0xFFFFFFFF as the
+# multi-image terminator instead of 0x00000000, causing U-Boot to
+# misparse the script payload offset.
+MKIMAGE_HOST="${HOST_DIR}/bin/mkimage"
+if [ -x "${MKIMAGE_HOST}" ]; then
+    "${MKIMAGE_HOST}" -A arm64 -O linux -T script -C none -d "${BOOT_CMD}" "${BOOT_SCR}"
+    echo "Created boot.scr (host mkimage)"
 elif command -v mkimage >/dev/null 2>&1; then
     mkimage -A arm64 -O linux -T script -C none -d "${BOOT_CMD}" "${BOOT_SCR}"
-    echo "Created boot.scr using host mkimage"
+    echo "Created boot.scr (system mkimage)"
+elif [ -x "${MKIMAGE}" ]; then
+    "${MKIMAGE}" -A arm64 -O linux -T script -C none -d "${BOOT_CMD}" "${BOOT_SCR}"
+    echo "WARNING: Created boot.scr using U-Boot mkimage (may have multi-image terminator bug)"
 else
-    echo "WARNING: mkimage not found, boot.scr not created"
-    cp "${BOOT_CMD}" "${BOOT_SCR}"
+    echo "ERROR: mkimage not found, boot.scr not created"
+    exit 1
 fi
 
 # ============================================
