@@ -10,6 +10,12 @@ set -e
 BINARIES_DIR=$1
 NERVES_DEFCONFIG_DIR="${0%/*}"
 
+# Run the common Nerves post-image processing.
+# This symlinks scripts/, nerves.mk, nerves-env.sh into $BASE_DIR
+# and copies fwup.conf to $BINARIES_DIR.
+FWUP_CONFIG="${NERVES_DEFCONFIG_DIR}/fwup.conf"
+"$BR2_EXTERNAL_NERVES_PATH/board/nerves-common/post-createfs.sh" "$TARGET_DIR" "$FWUP_CONFIG"
+
 # Find the build directory
 BUILD_DIR=$(dirname "${BINARIES_DIR}")/build
 
@@ -130,8 +136,8 @@ cat > "${BOOT_CMD}" << EOF
 #
 # This script reads nerves_fw_active from U-Boot env to determine
 # which rootfs partition to boot from:
-#   active=a → root=/dev/mmcblk0p2 (rootfs-a, GPT partition 1)
-#   active=b → root=/dev/mmcblk0p3 (rootfs-b, GPT partition 2)
+#   active=a -> root=/dev/mmcblk0p2 (rootfs-a, GPT partition 1)
+#   active=b -> root=/dev/mmcblk0p3 (rootfs-b, GPT partition 2)
 #
 # The boot FAT partition (kernel, DTB, boot.scr) is always GPT partition 0
 # (mmc 0:1 in U-Boot). fwup rewrites the GPT to point partition 0 at
@@ -216,8 +222,7 @@ fi
 # Create symlinks for fwup.conf expected names
 ln -sf "rootfs.squashfs" "${BINARIES_DIR}/rootfs.img"
 
-# Copy fwup configuration
-cp "${NERVES_DEFCONFIG_DIR}/fwup.conf" "${BINARIES_DIR}/"
+# Copy fwup-revert configuration (fwup.conf is already copied by the common script)
 cp "${NERVES_DEFCONFIG_DIR}/fwup-revert.conf" "${BINARIES_DIR}/"
 
 echo ""
