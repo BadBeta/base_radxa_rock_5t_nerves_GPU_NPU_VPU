@@ -61,9 +61,6 @@ mix deps.get
 mix firmware
 ```
 
-The first build compiles the entire Buildroot system (~45 min).
-Subsequent `mix firmware` runs only rebuild the Elixir release (~30 sec).
-
 ### Flash via Maskrom Mode
 
 With the device in maskrom mode (hold maskrom button, power on):
