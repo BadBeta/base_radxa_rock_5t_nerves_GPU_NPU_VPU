@@ -71,7 +71,6 @@ defmodule NervesSystemRock5t.MixProject do
   defp package_files do
     [
       "nerves_defconfig",
-      "nerves_defconfig_full",
       "linux-6.1.defconfig",
       "fwup.conf",
       "fwup-revert.conf",

@@ -26,24 +26,11 @@ with hardware-accelerated GPU, NPU, and VPU support.
 All sources are downloaded at build time from GitHub — no local
 tarballs or vendor blobs to manage.
 
-## Defconfigs
+## Buildroot Configuration
 
-Two Buildroot configurations are provided:
-
-- **`nerves_defconfig`** (base) — Kernel, GPU, VPU, NPU, networking,
-  audio HAL, Wayland libs. No compositor or browser.
-- **`nerves_defconfig_full`** — Adds Weston compositor, Cog/WPE WebKit
-  kiosk browser, PulseAudio, GStreamer with Rockchip plugins.
-
-Select with:
-
-```bash
-# Base (default)
-MIX_TARGET=rock5t mix firmware
-
-# Full display/media stack
-NERVES_DEFCONFIG=nerves_defconfig_full MIX_TARGET=rock5t mix firmware
-```
+The system uses `nerves_defconfig` which includes: kernel, GPU, VPU, NPU,
+networking, audio HAL, and Wayland libs. No compositor or browser — those
+belong in the application layer.
 
 ## Custom Buildroot Packages
 
