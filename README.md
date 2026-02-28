@@ -16,6 +16,7 @@ with hardware-accelerated GPU, NPU, and VPU support.
 | **WiFi/BT** | RTL8852BE | Out-of-tree rtw89 driver |
 | **Audio** | ALSA (HDMI + ES8316) | HDMI output, headphone jack |
 | **Display** | DRM/KMS | HDMI output via Rockchip DRM |
+| **HDMI Input** | V4L2 (rk_hdmirx) | Up to 4K60 capture, BGR3/NV24/NV16/NV12 |
 
 ## Kernel & Bootloader
 
@@ -29,8 +30,7 @@ tarballs or vendor blobs to manage.
 ## Buildroot Configuration
 
 The system uses `nerves_defconfig` which includes: kernel, GPU, VPU, NPU,
-networking, audio HAL, and Wayland libs. No compositor or browser — those
-belong in the application layer.
+networking, audio HAL, and Wayland libs.
 
 ## Custom Buildroot Packages
 
@@ -39,7 +39,6 @@ belong in the application layer.
 | `rockchip-libmali-g610` | Proprietary Mali G610 userspace + EGL/GBM hook library |
 | `rockchip-mpp` | Rockchip Media Process Platform (VPU) |
 | `rockchip-rknpu2` | RKNN runtime library (librknnrt.so) |
-| `rknpu` | Out-of-tree RKNPU kernel module (for non-BSP kernels) |
 | `gstreamer-rockchip` | GStreamer plugins for MPP hardware codecs |
 | `rtw89-oot` | Out-of-tree RTL8852BE WiFi driver |
 
@@ -73,6 +72,12 @@ This uses `rkdeveloptool` to write the firmware image to eMMC.
 
 ## Partition Layout (GPT)
 
+> **Note:** The partition layout in `fwup.conf` is sized for the Rock 5T's
+> 64GB eMMC (58GB actual / 122,142,720 sectors). The app data partition
+> count (`APP_PART_COUNT`) is hardcoded to fit this specific eMMC size.
+> If using a different eMMC capacity, adjust `APP_PART_COUNT` in `fwup.conf`
+> to avoid writing past the end of the device.
+
 | Region | Offset | Size | Description |
 |--------|--------|------|-------------|
 | idbloader | 32 KB | ~512 KB | DDR init + SPL |
@@ -80,7 +85,23 @@ This uses `rkdeveloptool` to write the firmware image to eMMC.
 | U-Boot env | 16 MB | 128 KB | Nerves A/B slot state |
 | Boot A/B | 32 MB | 64 MB each | Kernel, DTB, boot.scr (FAT) |
 | Rootfs A/B | 160 MB | 1 GB each | SquashFS (read-only) |
-| App data | ~2.2 GB | Remaining | EXT4 (persistent /data) |
+| App data | ~2.2 GB | ~55.5 GB | EXT4 (persistent /data) |
+
+## Booting from MicroSD Card
+
+The default configuration targets eMMC (`/dev/mmcblk0`). To boot from a
+MicroSD card instead, the following files need changes:
+
+| File | Change |
+|------|--------|
+| `fwup.conf` | Change `NERVES_FW_DEVPATH` to `/dev/mmcblk1` |
+| `fwup.conf` | Adjust `APP_PART_COUNT` for the SD card's capacity |
+| `rootfs_overlay/etc/erlinit.config` | Change boot mount from `/dev/mmcblk0p1` to `/dev/mmcblk1p1` |
+| `post-createfs.sh` | Change `mmcblk0p2`/`mmcblk0p3` root device references to `mmcblk1p*` |
+| `test_app/rootfs_overlay/etc/erlinit.config` | Same boot mount change as above (if using test_app) |
+
+On RK3588, eMMC is `mmcblk0` and MicroSD is `mmcblk1`. Flash to SD card
+using `fwup` or `mix burn` instead of `flash_emmc.sh`.
 
 ## Serial Console
 
