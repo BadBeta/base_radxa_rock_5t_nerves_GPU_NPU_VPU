@@ -41,7 +41,6 @@ belong in the application layer.
 | `rockchip-rknpu2` | RKNN runtime library (librknnrt.so) |
 | `rknpu` | Out-of-tree RKNPU kernel module (for non-BSP kernels) |
 | `gstreamer-rockchip` | GStreamer plugins for MPP hardware codecs |
-| `cog-ai-extension` | WebKit extension for AI overlay in Cog browser |
 | `rtw89-oot` | Out-of-tree RTL8852BE WiFi driver |
 
 ## Building
