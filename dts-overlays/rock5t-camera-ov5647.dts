@@ -1,0 +1,153 @@
+/*
+ * Device Tree Overlay: OV5647 (RPi Camera v1) on Rock 5T CAM0
+ *
+ * OmniVision OV5647 5MP camera module connected to the 31-pin FPC CAM0
+ * connector via 2-lane MIPI CSI-2.
+ *
+ * Wiring (CAM0 FPC connector):
+ *   - Power enable: GPIO4_A3 (active high)
+ *   - Power down:   GPIO4_A2 (active low — directly drives PWDN pin)
+ *   - I2C:          I2C5 (on-board, dedicated to CAM0)
+ *   - MIPI CSI-2:   csi2_dphy0 (2 data lanes)
+ *
+ * IMPORTANT: Adjust GPIO pins and I2C bus for your specific board
+ * revision. The pins below match the Rock 5T V1.1 schematic.
+ *
+ * To compile:
+ *   dtc -@ -I dts -O dtb -o rock5t-camera-ov5647.dtbo rock5t-camera-ov5647.dts
+ */
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "radxa,rock-5t", "rockchip,rk3588";
+
+	fragment@0 {
+		target-path = "/";
+		__overlay__ {
+			cam0_regulator: cam0-regulator {
+				compatible = "regulator-fixed";
+				regulator-name = "cam0_supply";
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
+				gpio = <&gpio4 3 0>; /* GPIO4_A3, active high */
+				enable-active-high;
+				regulator-always-on;
+			};
+		};
+	};
+
+	/* Enable MIPI D-PHY for CAM0 */
+	fragment@1 {
+		target = <&csi2_dphy0>;
+		__overlay__ {
+			status = "okay";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				/* Input from sensor */
+				port@0 {
+					reg = <0>;
+					dphy0_in: endpoint {
+						remote-endpoint = <&ov5647_out>;
+						data-lanes = <1 2>;
+					};
+				};
+
+				/* Output to CIF */
+				port@1 {
+					reg = <1>;
+					dphy0_out: endpoint {
+						remote-endpoint = <&cif_mipi0_in>;
+					};
+				};
+			};
+		};
+	};
+
+	/* Enable D-PHY hardware block */
+	fragment@2 {
+		target = <&csi2_dphy0_hw>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	/* Enable CIF MIPI receiver */
+	fragment@3 {
+		target = <&rkcif_mipi_lvds>;
+		__overlay__ {
+			status = "okay";
+
+			port {
+				cif_mipi0_in: endpoint {
+					remote-endpoint = <&dphy0_out>;
+				};
+			};
+		};
+	};
+
+	/* Enable CIF controller */
+	fragment@4 {
+		target = <&rkcif>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	/* Enable ISP0 for image processing */
+	fragment@5 {
+		target = <&rkisp0>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	/* OV5647 sensor on I2C5 */
+	fragment@6 {
+		target = <&i2c5>;
+		__overlay__ {
+			status = "okay";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			ov5647: ov5647@36 {
+				compatible = "ovti,ov5647";
+				reg = <0x36>;
+				clocks = <&cam0_clk>;
+				clock-names = "xclk";
+
+				pwdn-gpios = <&gpio4 2 1>; /* GPIO4_A2, active low */
+				AVDD-supply = <&cam0_regulator>;
+				DVDD-supply = <&cam0_regulator>;
+				DOVDD-supply = <&cam0_regulator>;
+
+				port {
+					ov5647_out: endpoint {
+						remote-endpoint = <&dphy0_in>;
+						data-lanes = <1 2>;
+						clock-lanes = <0>;
+						clock-noncontinuous;
+						link-frequencies = /bits/ 64 <297000000>;
+					};
+				};
+			};
+		};
+	};
+
+	/* 25 MHz reference clock for the sensor */
+	fragment@7 {
+		target-path = "/";
+		__overlay__ {
+			cam0_clk: cam0-clk {
+				compatible = "fixed-clock";
+				#clock-cells = <0>;
+				clock-frequency = <25000000>;
+				clock-output-names = "cam0_xclk";
+			};
+		};
+	};
+};

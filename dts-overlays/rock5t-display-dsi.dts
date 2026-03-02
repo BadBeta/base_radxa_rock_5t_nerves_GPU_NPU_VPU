@@ -1,0 +1,138 @@
+/*
+ * Device Tree Overlay: MIPI DSI Panel on Rock 5T DSI0
+ *
+ * Example overlay for a generic MIPI DSI panel on the 39-pin FPC DSI
+ * connector. This template uses the simple-panel-dsi compatible and
+ * must be customized for your specific panel.
+ *
+ * Wiring (DSI0 FPC connector — 39-pin, 0.3mm pitch):
+ *   - DSI data:  4 MIPI DSI lanes via mipi_dcphy0
+ *   - Backlight: PWM-controlled (GPIO pin depends on wiring)
+ *   - Reset:     GPIO4_B0 (active low — adjust for your panel)
+ *   - I2C touch: I2C6 (if panel has a touchscreen controller)
+ *
+ * IMPORTANT: You MUST customize the panel-init-sequence, timings,
+ * and dimensions for your specific panel. The values below are
+ * placeholders for a hypothetical 800x480 panel.
+ *
+ * To compile:
+ *   dtc -@ -I dts -O dtb -o rock5t-display-dsi.dtbo rock5t-display-dsi.dts
+ */
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "radxa,rock-5t", "rockchip,rk3588";
+
+	/* Backlight controlled via PWM */
+	fragment@0 {
+		target-path = "/";
+		__overlay__ {
+			dsi_backlight: dsi-backlight {
+				compatible = "pwm-backlight";
+				/* Adjust PWM channel and period for your board */
+				pwms = <&pwm0 0 25000 0>;
+				brightness-levels = <
+					0  16  32  48  64  80  96  112
+					128 144 160 176 192 208 224 240 255
+				>;
+				default-brightness-level = <12>;
+			};
+		};
+	};
+
+	/* Enable MIPI DC-PHY (combined DSI/CSI PHY on RK3588) */
+	fragment@1 {
+		target = <&mipi_dcphy0>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	/* Enable DSI0 controller and attach panel */
+	fragment@2 {
+		target = <&dsi0>;
+		__overlay__ {
+			status = "okay";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			panel@0 {
+				compatible = "simple-panel-dsi";
+				reg = <0>;
+				backlight = <&dsi_backlight>;
+				reset-gpios = <&gpio4 8 1>; /* GPIO4_B0, active low */
+
+				/* Enable/power GPIOs — adjust for your panel */
+				/* enable-gpios = <&gpio4 9 0>; */
+
+				prepare-delay-ms = <120>;
+				reset-delay-ms = <20>;
+				init-delay-ms = <100>;
+				enable-delay-ms = <100>;
+
+				dsi,flags = <0x3>;     /* MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST */
+				dsi,format = <0>;      /* MIPI_DSI_FMT_RGB888 */
+				dsi,lanes = <4>;
+
+				/*
+				 * Panel initialization commands (DSI DCS).
+				 * Format: <delay cmd_len cmd [data...]>
+				 * These are panel-specific — consult your panel datasheet.
+				 *
+				 * panel-init-sequence = [
+				 *     05 78 01 11
+				 *     05 14 01 29
+				 * ];
+				 */
+
+				display-timings {
+					native-mode = <&timing0>;
+
+					timing0: timing0 {
+						/* 800x480 @ 60Hz — replace with your panel specs */
+						clock-frequency = <27000000>;
+						hactive = <800>;
+						vactive = <480>;
+						hfront-porch = <40>;
+						hsync-len = <48>;
+						hback-porch = <40>;
+						vfront-porch = <13>;
+						vsync-len = <3>;
+						vback-porch = <29>;
+						hsync-active = <0>;
+						vsync-active = <0>;
+						de-active = <0>;
+						pixelclk-active = <0>;
+					};
+				};
+			};
+		};
+	};
+
+	/*
+	 * Touchscreen controller on I2C6 — uncomment and adjust for
+	 * your specific touch panel (Goodix, FocalTech, etc.)
+	 *
+	 * fragment@3 {
+	 *     target = <&i2c6>;
+	 *     __overlay__ {
+	 *         status = "okay";
+	 *         #address-cells = <1>;
+	 *         #size-cells = <0>;
+	 *
+	 *         touchscreen@14 {
+	 *             compatible = "goodix,gt911";
+	 *             reg = <0x14>;
+	 *             interrupt-parent = <&gpio4>;
+	 *             interrupts = <10 2>;
+	 *             irq-gpios = <&gpio4 10 0>;
+	 *             reset-gpios = <&gpio4 11 0>;
+	 *             touchscreen-size-x = <800>;
+	 *             touchscreen-size-y = <480>;
+	 *         };
+	 *     };
+	 * };
+	 */
+};

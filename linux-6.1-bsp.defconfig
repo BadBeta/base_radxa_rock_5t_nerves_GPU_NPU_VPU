@@ -835,12 +835,12 @@ CONFIG_USB_VIDEO_CLASS=y
 CONFIG_V4L_PLATFORM_DRIVERS=y
 CONFIG_V4L_MEM2MEM_DRIVERS=y
 # Rockchip media drivers
-# Camera interfaces disabled (enable if needed)
-# CONFIG_VIDEO_ROCKCHIP_CIF is not set
-# CONFIG_VIDEO_ROCKCHIP_RKISP1 is not set
-# CONFIG_VIDEO_ROCKCHIP_ISP is not set
-# CONFIG_VIDEO_ROCKCHIP_ISPP is not set
-# CONFIG_VIDEO_ROCKCHIP_VPSS is not set
+# Camera ISP + sensor drivers (sensors built-in, add DT overlay for your camera)
+CONFIG_VIDEO_ROCKCHIP_CIF=y
+CONFIG_VIDEO_ROCKCHIP_RKISP1=y
+CONFIG_VIDEO_ROCKCHIP_ISP=y
+CONFIG_VIDEO_ROCKCHIP_ISPP=y
+CONFIG_VIDEO_ROCKCHIP_VPSS=y
 # HDMI input capture - Rock 5T has HDMI RX
 CONFIG_VIDEO_ROCKCHIP_HDMIRX=y
 # RGA userspace interface for 2D graphics acceleration

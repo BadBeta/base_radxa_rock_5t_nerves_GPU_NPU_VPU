@@ -1,0 +1,106 @@
+From: Nerves Build <build@nerves-project.org>
+Subject: [PATCH] arm64: dts: rockchip: rock-5t: enable 40-pin GPIO header peripherals
+
+Enable SPI0 (M2 mux), I2C3 (M1 mux), I2C8 (M4 mux), I2S2 (M1 mux),
+and 4 PWM channels on the 40-pin GPIO header. PDM1 (M0 mux) for the
+FPC microphone connector is included but commented out for future use.
+
+Pin assignments:
+  SPI0:  pins 19 (MOSI), 21 (MISO), 23 (CLK), 24 (CS0)
+  I2C3:  pins 13 (SCL), 15 (SDA)
+  I2C8:  pins 32 (SCL), 7 (SDA)
+  I2S2:  pins 12 (SCLK), 35 (LRCK), 38 (SDI), 40 (SDO)
+  PWM0:  pin 31, PWM2: pin 36, PWM3: pin 37, PWM8: pin 33
+  PDM1:  FPC connector (GPIO4_PD0-PD5) - commented out
+
+No pin conflicts with existing peripherals. PWM1 (fan) is not used.
+SARADC (pin 22) is already enabled via the &saradc node.
+
+Signed-off-by: Nerves Build <build@nerves-project.org>
+---
+--- a/arch/arm64/boot/dts/rockchip/rk3588-rock-5t.dts	2025-12-08 09:38:26.000000000 +0100
++++ b/arch/arm64/boot/dts/rockchip/rk3588-rock-5t.dts	2026-03-02 09:14:25.083513495 +0100
+@@ -888,6 +888,80 @@
+ 	status = "okay";
+ };
+ 
++/* =================================================================
++ * 40-Pin GPIO Header Peripherals
++ * ================================================================= */
++
++/* SPI0 on 40-pin header: pin 19 (MOSI), 21 (MISO), 23 (CLK), 24 (CS0) */
++&spi0 {
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&spi0m2_pins &spi0m2_cs0>;
++	num-cs = <1>;
++
++	spidev@0 {
++		compatible = "rohm,dh2228fv";
++		reg = <0>;
++		spi-max-frequency = <10000000>;
++	};
++};
++
++/* I2C3 on 40-pin header: pin 13 (SCL), pin 15 (SDA) */
++&i2c3 {
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c3m1_xfer>;
++};
++
++/* I2C8 on 40-pin header: pin 32 (SCL), pin 7 (SDA) */
++&i2c8 {
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c8m4_xfer>;
++};
++
++/* I2S2 on 40-pin header: pin 12 (SCLK), 35 (LRCK), 38 (SDI), 40 (SDO) */
++&i2s2_2ch {
++	status = "okay";
++};
++
++/* PWM0 on pin 31 (GPIO1_A2) */
++&pwm0 {
++	status = "okay";
++	pinctrl-names = "active";
++	pinctrl-0 = <&pwm0m2_pins>;
++};
++
++/* PWM2 on pin 36 (GPIO3_B1) */
++&pwm2 {
++	status = "okay";
++	pinctrl-names = "active";
++	pinctrl-0 = <&pwm2m1_pins>;
++};
++
++/* PWM3 on pin 37 (GPIO1_A7) */
++&pwm3 {
++	status = "okay";
++	pinctrl-names = "active";
++	pinctrl-0 = <&pwm3m3_pins>;
++};
++
++/* PWM8 on pin 33 (GPIO3_A7) */
++&pwm8 {
++	status = "okay";
++	pinctrl-names = "active";
++	pinctrl-0 = <&pwm8m0_pins>;
++};
++
++/*
++ * PDM1 for FPC microphone connector (NOT on 40-pin header)
++ * Uncomment when an FPC PDM microphone board is connected.
++ *
++ * &pdm1 {
++ *	status = "okay";
++ * };
++ */
++
+ &combphy0_ps {
+ 	status = "okay";
+ };
+-- 
+2.47.2
+
