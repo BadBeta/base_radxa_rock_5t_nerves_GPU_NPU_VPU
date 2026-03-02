@@ -5,7 +5,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ARTIFACT_DIR="$SCRIPT_DIR/.nerves/artifacts/nerves_system_rock5t-portable-0.1.0"
+ARTIFACT_DIR=$(find "$SCRIPT_DIR/.nerves/artifacts" -maxdepth 1 -type d -name "nerves_system_rock5t-portable-*" 2>/dev/null | sort -V | tail -1)
 # Prefer loader from dl/ (manually placed), fall back to build artifacts
 LOADER=$(find "$SCRIPT_DIR/dl" -name "rk3588_spl_loader*.bin" 2>/dev/null | sort -V | tail -1)
 [ -z "$LOADER" ] && LOADER=$(find "$ARTIFACT_DIR/build" -name "rk3588_spl_loader*.bin" 2>/dev/null | head -1)

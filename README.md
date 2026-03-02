@@ -1,8 +1,6 @@
 # Nerves System for Radxa Rock 5T (RK3588)
 
-Custom [Nerves](https://nerves-project.org/) system for the
-[Radxa Rock 5T](https://radxa.com/products/rock5/5t/) single-board computer,
-with hardware-accelerated GPU, NPU, VPU, camera ISP, and display support.
+Custom [Nerves](https://nerves-project.org/) system for the [Radxa Rock 5T](https://radxa.com/products/rock5/5t/) single-board computer, with hardware-accelerated GPU, NPU, VPU, camera ISP, and display support.
 
 ## Hardware Support
 
@@ -11,8 +9,8 @@ with hardware-accelerated GPU, NPU, VPU, camera ISP, and display support.
 | **CPU** | Cortex-A76 + A55 (big.LITTLE) | RK3588 SoC |
 | **GPU** | Mali G610 (proprietary blob) | Wayland EGL/GBM via libmali |
 | **NPU** | RKNPU (in-tree BSP driver) | 6 TOPS via librknnrt.so + .rknn models |
-| **VPU** | Rockchip MPP | H.264/H.265 hardware encode/decode |
-| **ISP** | rkisp + rkisp1 + ispp + vpss | Image signal processing for MIPI cameras |
+| **VPU** | Rockchip MPP | Decode: H.264, H.265, VP9, AV1, JPEG; Encode: H.264, H.265, VP8, JPEG |
+| **ISP** | rkisp + rkisp1 + ispp + vpss | MIPI CSI-2 or raw read-back (GigE via Aravis) |
 | **CSI** | rkcif + MIPI D-PHY/C-PHY | Two 4-lane MIPI CSI-2 camera inputs |
 | **DSI** | Rockchip DRM + MIPI DC-PHY | One 4-lane MIPI DSI display output |
 | **Ethernet** | Dual 2.5GbE (RTL8125B) | Both ports supported |
@@ -28,13 +26,11 @@ with hardware-accelerated GPU, NPU, VPU, camera ISP, and display support.
 - **U-Boot**: Radxa BSP fork (2024.10-based)
 - **ATF**: ARM Trusted Firmware v2.12
 
-All sources are downloaded at build time from GitHub — no local
-tarballs or vendor blobs to manage.
+All sources are downloaded at build time from GitHub — no local tarballs or vendor blobs to manage.
 
 ## 40-Pin GPIO Header
 
-The 40-pin header exposes SPI, I2C, I2S, PWM, ADC, and GPIO. All bus
-peripherals are enabled in the device tree by default.
+The 40-pin header exposes SPI, I2C, I2S, PWM, ADC, and GPIO. The table below shows the current device tree configuration. Most pins support multiple mux options (UART, SPI, I2C, PWM, GPIO, etc.) — the RK3588 IOMUX allows different combinations by changing pinctrl settings in the DT overlay.
 
 ### Pin Table
 
@@ -184,15 +180,12 @@ All 17 drivers are compiled into the kernel:
 
 ### Enabling a Camera
 
-Cameras require a device tree overlay (or DTS patch) to connect the
-sensor, D-PHY, CIF, and ISP nodes. Example overlays are provided in
-[`dts-overlays/`](dts-overlays/):
+Cameras require a device tree overlay (or DTS patch) to connect the sensor, D-PHY, CIF, and ISP nodes. Example overlays are provided in [`dts-overlays/`](dts-overlays/):
 
 - `rock5t-camera-imx219.dts` — IMX219 (RPi Camera v2) on CAM0
 - `rock5t-camera-ov5647.dts` — OV5647 (RPi Camera v1) on CAM0
 
-See [`dts-overlays/README.md`](dts-overlays/README.md) for compilation
-and integration instructions.
+See [`dts-overlays/README.md`](dts-overlays/README.md) for compilation and integration instructions.
 
 ## Display (MIPI DSI)
 
@@ -202,13 +195,9 @@ One 4-lane MIPI DSI connector for LCD panels:
 |-----------|-----|-------|-------|-----|
 | **DSI0** | 39-pin (Hirose FH35C-39S-0.3SHW) | 0.3 mm | 4 | mipi_dcphy0 |
 
-The DSI controller and DC-PHY are compiled in but disabled by default
-(no panel attached). To enable a panel, apply a device tree overlay.
-An example is provided in
-[`dts-overlays/rock5t-display-dsi.dts`](dts-overlays/rock5t-display-dsi.dts).
+The DSI controller and DC-PHY are compiled in but disabled by default (no panel attached). To enable a panel, apply a device tree overlay. An example is provided in [`dts-overlays/rock5t-display-dsi.dts`](dts-overlays/rock5t-display-dsi.dts).
 
-Panel-specific initialization sequences, timings, and GPIO wiring must
-be adapted from the panel datasheet.
+Panel-specific initialization sequences, timings, and GPIO wiring must be adapted from the panel datasheet.
 
 ## ISP (Image Signal Processor)
 
@@ -219,16 +208,26 @@ The following Rockchip ISP and video pipeline drivers are enabled:
 | rkisp | Rockchip ISP v2 (3A, denoising, HDR) |
 | rkisp1 | Rockchip ISP v1 (legacy compat) |
 | ispp | ISP post-processor (NR, sharpening) |
-| rkcif | CIF MIPI/LVDS/DVP receiver |
+| rkcif | CIF MIPI receiver |
 | vpss | Video process subsystem |
 
-These provide the full hardware pipeline from MIPI sensor input
-through ISP processing to V4L2 video output.
+### MIPI CSI-2 Pipeline
+
+The standard path for MIPI cameras connected to the CAM0/CAM1 FPC connectors:
+
+```
+Sensor → D-PHY → rkcif → rkisp → ispp → V4L2 output
+                                    ↑
+                                  vpss (scaling/conversion)
+```
+
+### Raw Read-Back Pipeline (GigE, File, etc.)
+
+The ISP also supports a raw read-back (rawrd) mechanism that reads raw Bayer frames from DDR memory. This allows any source — including GigE Vision cameras (via the Aravis library over Ethernet) or raw files on disk — to be processed through the full ISP pipeline (BLC, demosaic, CCM, 3DLUT, noise reduction, sharpening).
 
 ## Buildroot Configuration
 
-The system uses `nerves_defconfig` which includes: kernel, GPU, VPU, NPU,
-camera ISP, networking, audio HAL, and Wayland libs.
+The system uses `nerves_defconfig` which includes: kernel, GPU, VPU, NPU, camera ISP, networking, audio HAL, and Wayland libs.
 
 ## Custom Buildroot Packages
 
@@ -246,8 +245,7 @@ camera ISP, networking, audio HAL, and Wayland libs.
 
 - Elixir 1.17+
 - Nerves Bootstrap: `mix archive.install hex nerves_bootstrap`
-- Standard Nerves host dependencies
-  ([installation guide](https://hexdocs.pm/nerves/installation.html))
+- Standard Nerves host dependencies ([installation guide](https://hexdocs.pm/nerves/installation.html))
 
 ### Build the System + Test App
 
@@ -270,11 +268,7 @@ This uses `rkdeveloptool` to write the firmware image to eMMC.
 
 ## Partition Layout (GPT)
 
-> **Note:** The partition layout in `fwup.conf` is sized for the Rock 5T's
-> 64GB eMMC (58GB actual / 122,142,720 sectors). The app data partition
-> count (`APP_PART_COUNT`) is hardcoded to fit this specific eMMC size.
-> If using a different eMMC capacity, adjust `APP_PART_COUNT` in `fwup.conf`
-> to avoid writing past the end of the device.
+> **Note:** The partition layout in `fwup.conf` is sized for the Rock 5T's 64GB eMMC (58GB actual / 122,142,720 sectors). The app data partition count (`APP_PART_COUNT`) is hardcoded to fit this specific eMMC size. If using a different eMMC capacity, adjust `APP_PART_COUNT` in `fwup.conf` to avoid writing past the end of the device.
 
 | Region | Offset | Size | Description |
 |--------|--------|------|-------------|
@@ -287,8 +281,7 @@ This uses `rkdeveloptool` to write the firmware image to eMMC.
 
 ## Booting from MicroSD Card
 
-The default configuration targets eMMC (`/dev/mmcblk0`). To boot from a
-MicroSD card instead, the following files need changes:
+The default configuration targets eMMC (`/dev/mmcblk0`). To boot from a MicroSD card instead, the following files need changes:
 
 | File | Change |
 |------|--------|
@@ -298,8 +291,7 @@ MicroSD card instead, the following files need changes:
 | `post-createfs.sh` | Change `mmcblk0p2`/`mmcblk0p3` root device references to `mmcblk1p*` |
 | `test_app/rootfs_overlay/etc/erlinit.config` | Same boot mount change as above (if using test_app) |
 
-On RK3588, eMMC is `mmcblk0` and MicroSD is `mmcblk1`. Flash to SD card
-using `fwup` or `mix burn` instead of `flash_emmc.sh`.
+On RK3588, eMMC is `mmcblk0` and MicroSD is `mmcblk1`. Flash to SD card using `fwup` or `mix burn` instead of `flash_emmc.sh`.
 
 ## License
 
