@@ -15,8 +15,6 @@ endmenu
 
 menu "Rock 5T Application Packages"
 
-source "$NERVES_DEFCONFIG_DIR/package/cog-ai-extension/Config.in"
 source "$NERVES_DEFCONFIG_DIR/package/gstreamer-rockchip/Config.in"
-source "$NERVES_DEFCONFIG_DIR/package/rknn-infer/Config.in"
 
 endmenu
